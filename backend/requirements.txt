@@ -15,5 +15,3 @@ python-multipart
 sqlalchemy
 email-validator
 python-dotenv
-openai
-google-generativeai

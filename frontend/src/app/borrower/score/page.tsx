@@ -110,7 +110,7 @@ export default function ScorePage() {
                 <div className="mt-1.5 w-2.5 h-2.5 rounded-sm bg-[#95f4a0] border border-[#320070] flex-shrink-0" />
                 <div>
                   <p className="text-xs font-black uppercase tracking-wider text-[#320070]">{item.feature.replace(/_/g, ' ')}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] mt-0.5">Positive transactional stability</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] mt-0.5">{item.message || 'Positive transactional stability'}</p>
                 </div>
               </li>
             ))}
@@ -128,7 +128,7 @@ export default function ScorePage() {
                 <div className="mt-1.5 w-2.5 h-2.5 rounded-sm bg-[#EF476F] border border-[#320070] flex-shrink-0" />
                 <div>
                   <p className="text-xs font-black uppercase tracking-wider text-[#320070]">{item.feature.replace(/_/g, ' ')}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] mt-0.5">Optimization pathway recommended</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] mt-0.5">{item.message || 'Optimization pathway recommended'}</p>
                 </div>
               </li>
             ))}

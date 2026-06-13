@@ -8,17 +8,11 @@ class Score(Base):
     __tablename__ = "scores"
 
     id = Column(Integer, primary_key=True)
-
     user_id = Column(Integer, ForeignKey("users.id"))
-
     score = Column(Float)
-
     timestamp = Column(
         DateTime(timezone=True),
         server_default=func.now()
     )
 
-user = relationship(
-    "User",
-    back_populates="scores"
-)
+    user = relationship("User", back_populates="scores")  # inside class

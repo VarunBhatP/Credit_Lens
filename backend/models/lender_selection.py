@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Integer, ForeignKey, DateTime
+
+
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, String
 from sqlalchemy.sql import func
 from database import Base
 
@@ -22,3 +24,4 @@ class LenderSelection(Base):
         DateTime(timezone=True),
         server_default=func.now()
     )
+    status: str = Column(String, default="pending")

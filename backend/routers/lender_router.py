@@ -136,7 +136,8 @@ def get_applicants(
                 "score": float(latest_score.score),
                 "risk_tier": tier,
                 "income": borrower.income or 0,
-                "employment_days": borrower.employment_days or 0
+                "employment_days": borrower.employment_days or 0,
+                "status": selection.status or "pending"
             }
         )
 
@@ -163,12 +164,50 @@ def get_applicant(
         "id": borrower.id,
         "name": borrower.name,
         "email": borrower.email,
-        "score": float(latest_score.score) if latest_score else 600,
+        "score": round(float(latest_score.score), 1),
         "risk_tier": get_risk_tier(latest_score.score) if latest_score else "Yellow",
         "income": f"₹ {borrower.income or 0} / year",
         "employment": f"{borrower.employment_days or 0} days",
         "explainData": {
-            "helping": [{"feature": "INCOME", "impact": -1.2}],
-            "hurting": [{"feature": "CREDIT", "impact": 0.5}]
+            "helping": [
+                {"feature": "EXT_SOURCE_2", "impact": -0.38},
+                {"feature": "AMT_ANNUITY", "impact": -0.29}
+            ],
+            "hurting": [
+                {"feature": "DAYS_EMPLOYED", "impact": 0.44},
+                {"feature": "AMT_CREDIT", "impact": 0.21}
+            ]
         }
     }
+
+@router.post("/applicant/{applicant_id}/accept")
+def accept_applicant(
+    applicant_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_lender)
+):
+    selection = db.query(LenderSelection).filter(
+        LenderSelection.lender_id == current_user["id"],
+        LenderSelection.borrower_id == applicant_id
+    ).first()
+    if not selection:
+        raise HTTPException(status_code=404, detail="Selection not found")
+    selection.status = "accepted"
+    db.commit()
+    return {"message": "Applicant accepted"}
+
+@router.post("/applicant/{applicant_id}/reject")
+def reject_applicant(
+    applicant_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_lender)
+):
+    selection = db.query(LenderSelection).filter(
+        LenderSelection.lender_id == current_user["id"],
+        LenderSelection.borrower_id == applicant_id
+    ).first()
+    if not selection:
+        raise HTTPException(status_code=404, detail="Selection not found")
+    selection.status = "rejected"
+    db.commit()
+    return {"message": "Applicant rejected"}

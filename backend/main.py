@@ -73,14 +73,28 @@ async def upload_document(
     amt_credit = df[df['Type'] == 'Credit']['Amount'].sum()
     amt_annuity = df[df['Type'] == 'Debit']['Amount'].mean() if len(df[df['Type'] == 'Debit']) > 0 else 0
     
+    # EXT_SOURCE derivation from UPI data
+    total_txns = len(df)
+    credit_ratio = len(df[df['Type'] == 'Credit']) / total_txns if total_txns > 0 else 0
+    avg_balance = df['Balance'].mean()
+    ext_source_2 = float(round(min(credit_ratio * 1.5, 1.0), 2))
+    ext_source_3 = float(round(min(avg_balance / 10000, 1.0), 2))
+
     db_user = db.query(User).filter(User.id == current_user["id"]).first()
     if db_user:
         db_user.amt_credit = int(amt_credit)
         db_user.amt_annuity = int(amt_annuity)
+        db_user.ext_source_2 = ext_source_2   # add this
+        db_user.ext_source_3 = ext_source_3   # add this
         db.commit()
     
-    return {"message": "Document processed successfully", "amt_credit": amt_credit, "amt_annuity": amt_annuity}
-
+    return {
+        "message": "Document processed successfully",
+        "amt_credit": amt_credit,
+        "amt_annuity": amt_annuity,
+        "ext_source_2": ext_source_2,
+        "ext_source_3": ext_source_3
+    }
 @app.post('/score')
 def get_credit_score(
     db: Session = Depends(get_db),
@@ -96,8 +110,8 @@ def get_credit_score(
         "AMT_ANNUITY": db_user.amt_annuity or 22500,
         "DAYS_BIRTH": (db_user.age * -365) if db_user.age else -12000,
         "DAYS_EMPLOYED": (db_user.employment_days * -1) if db_user.employment_days else -2000,
-        "EXT_SOURCE_2": 0.65 if (db_user.income or 180000) > 200000 else 0.3,
-        "EXT_SOURCE_3": 0.55
+        "EXT_SOURCE_2": db_user.ext_source_2 or 0.3,
+        "EXT_SOURCE_3": db_user.ext_source_3 or 0.55
     }])
 
     for col in credit_columns:
@@ -123,7 +137,7 @@ def get_credit_score(
         "status": "ok"
     }
 
-
+from roadmap import generate_roadmap, get_feature_message
 @app.post('/explain')
 def explain_score(
     db: Session = Depends(get_db),
@@ -139,8 +153,8 @@ def explain_score(
         "AMT_ANNUITY": db_user.amt_annuity or 22500,
         "DAYS_BIRTH": (db_user.age * -365) if db_user.age else -12000,
         "DAYS_EMPLOYED": (db_user.employment_days * -1) if db_user.employment_days else -2000,
-        "EXT_SOURCE_2": 0.65 if (db_user.income or 180000) > 200000 else 0.3,
-        "EXT_SOURCE_3": 0.55
+        "EXT_SOURCE_2": db_user.ext_source_2 or 0.5,
+        "EXT_SOURCE_3": db_user.ext_source_3 or 0.5
     }])
 
     for col in credit_columns:
@@ -167,15 +181,23 @@ def explain_score(
     )
 
     return {
-        "helping": [
-            {"feature": f, "impact": float(v)}
-            for f, v in helping
-        ],
-        "hurting": [
-            {"feature": f, "impact": float(v)}
-            for f, v in hurting
-        ]
-    }
+    "helping": [
+        {
+            "feature": f,
+            "message": get_feature_message(f, "good"),
+            "impact": float(v)
+        }
+        for f, v in helping
+    ],
+    "hurting": [
+        {
+            "feature": f,
+            "message": get_feature_message(f, "bad"),
+            "impact": float(v)
+        }
+        for f, v in hurting
+    ]
+}
 
 
 class LoanInput(BaseModel):
@@ -196,6 +218,13 @@ def check_eligibility(
     score_val = latest_score.score if latest_score else 600.0
     annual_inc = db_user.income or 0.0
     dti = (db_user.amt_annuity / (annual_inc / 12)) if annual_inc > 0 else 0.0
+    if annual_inc > 0 and input.loan_amnt > (annual_inc * 0.4):
+        return {
+        "default_probability": 1.0,
+        "eligible": False,
+        "recommended_amount": float(annual_inc * 0.3),
+        "reason": "Loan amount exceeds 40% of annual income"
+    }
 
     input_data = pd.DataFrame([{
         "credit_score": score_val,
@@ -223,3 +252,20 @@ def check_eligibility(
 @app.post("/roadmap")
 def get_roadmap(input: RoadmapInput):
     return generate_roadmap(input.hurting)
+
+@app.get("/borrower/notifications")
+def get_notifications(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_borrower)
+):
+    selections = db.query(LenderSelection).filter(
+        LenderSelection.borrower_id == current_user["id"]
+    ).all()
+    results = []
+    for s in selections:
+        lender = db.query(User).filter(User.id == s.lender_id).first()
+        results.append({
+            "lender_name": lender.name if lender else "Unknown",
+            "status": s.status or "pending"
+        })
+    return results
