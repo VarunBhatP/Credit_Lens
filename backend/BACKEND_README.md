@@ -1,6 +1,6 @@
 # CreditLens Backend — Handoff README
 
-## What Has Been Built (Day 1 Complete)
+## What Has Been Built (Day 1 & Day 2 Complete)
 
 ### ML Models (Kaggle Notebooks)
 Two XGBoost models trained and saved as `.pkl` files:
@@ -12,13 +12,46 @@ Two XGBoost models trained and saved as `.pkl` files:
 | `loan_eligibility_model.pkl` | Predicts if user can repay a specific loan | Lending Club (Kaggle) | 0.733 |
 | `loan_feature_columns.pkl` | 38 column names loan model expects | — | — |
 
-All 4 files are in `backend/models/`.
+All 4 files are in `backend/ml_models/`.
 
 ### FastAPI Endpoints (backend/main.py)
 Server runs on `http://127.0.0.1:8000`. Test all endpoints at `http://127.0.0.1:8000/docs`.
 
+#### POST `/auth/register`
+Creates a borrower or lender account.
+```json
+Input:
+{
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "password": "securepassword",
+  "role": "borrower"
+}
+Output: { "message": "User registered successfully", "user_id": 1 }
+```
+
+#### POST `/auth/login`
+Authenticates a user and returns a JWT token.
+```json
+Input:
+{
+  "email": "jane@example.com",
+  "password": "securepassword"
+}
+Output: { "access_token": "...", "token_type": "bearer" }
+```
+
+#### GET `/me`
+Retrieves details of the currently authenticated user. (Requires authentication token)
+
+#### GET `/borrower`
+Retrieves borrower dashboard details. (Requires borrower authorization token)
+
+#### GET `/lender`
+Retrieves lender dashboard details. (Requires lender authorization token)
+
 #### POST `/score`
-Takes user financial profile → returns credit score (300-900).
+Takes user financial profile → saves to database and returns credit score (300-900). (Requires borrower authorization token)
 ```json
 Input:
 {
@@ -64,6 +97,39 @@ Output:
 ```
 Logic: eligible if default_probability < 0.3. If not eligible, recommended = 70% of requested.
 
+#### POST `/roadmap`
+Maps weak SHAP features to action plans.
+```json
+Input:
+{
+  "hurting": [{"feature": "EXT_SOURCE_2", "impact": 0.75}]
+}
+Output:
+{
+  "3_months": ["Pay utility bills on time."],
+  "6_months": ["Maintain regular digital transactions."],
+  "12_months": ["Build consistent repayment behaviour."]
+}
+```
+
+#### POST `/lender/select/{lender_id}`
+Allows a borrower to select a lender. (Requires borrower authorization token)
+
+#### GET `/lender/applicants`
+Returns applicants who selected this lender, with optional risk tier filtering. (Requires lender authorization token)
+```json
+Query parameters: risk (Green/Yellow/Red)
+Output: [
+  {
+    "id": 1,
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "score": 617.1,
+    "risk_tier": "Yellow"
+  }
+]
+```
+
 ### Synthetic UPI Generator (backend/synthetic_upi.py)
 Generates fake but realistic UPI transaction CSV for demo purposes.
 ```bash
@@ -78,12 +144,14 @@ Columns: UPI ID, Date, Description, Type (Credit/Debit), Amount, Balance.
 ```
 creditlens/
 ├── backend/
-│   ├── models/
-│   │   ├── credit_score_model.pkl
-│   │   ├── feature_columns.pkl
-│   │   ├── loan_eligibility_model.pkl
-│   │   └── loan_feature_columns.pkl
-│   ├── main.py              ← FastAPI app (3 endpoints done)
+│   ├── auth/                ← JWT auth, hashing & oauth2 dependency injection
+│   ├── ml_models/           ← Saved XGBoost models & feature columns
+│   ├── models/              ← SQLAlchemy DB models (user, score, lender selection)
+│   ├── routers/             ← Auth and Lender API routes
+│   ├── schemas/             ← Pydantic validation schemas
+│   ├── database.py          ← SQLAlchemy setup & db session generator
+│   ├── main.py              ← FastAPI app (All endpoints, db tables initialization)
+│   ├── roadmap.py           ← Credit Improvement Roadmap Engine logic
 │   ├── synthetic_upi.py     ← UPI CSV generator
 │   └── requirements.txt
 ├── frontend/                ← React app (Day 3)
@@ -107,29 +175,29 @@ uvicorn main:app --reload
 
 ---
 
-## Day 2 Tasks (Backend Completion)
+## Day 2 Tasks (Backend Completion) - COMPLETED
 
-Work entirely in VS Code. Do these in order:
+All tasks for Day 2 have been successfully implemented:
 
-### 1. Credit Improvement Roadmap Engine — `backend/roadmap.py`
+### 1. Credit Improvement Roadmap Engine — `backend/roadmap.py` [COMPLETED]
 Rule-based engine (no LLM). Maps weak SHAP features to action plans.
 - Input: list of hurting features from `/explain`
 - Output: actions for 3 month, 6 month, 12 month timelines
 - Example: `DAYS_EMPLOYED` hurting → "Stay at current job for 6+ months"
 - Example: `EXT_SOURCE_2` hurting → "Clear any outstanding utility bills"
 
-### 2. PostgreSQL DB Schema
+### 2. PostgreSQL DB Schema [COMPLETED]
 Create these tables:
 - `users` — id, name, email, password_hash, role (borrower/lender)
 - `scores` — id, user_id, score, timestamp
 - `lender_selections` — borrower_id, lender_id, selected_at
 
-### 3. JWT Auth Endpoints
+### 3. JWT Auth Endpoints [COMPLETED]
 - `POST /register` — create borrower or lender account
 - `POST /login` — returns JWT token
 - Role-based: borrowers see their own data, lenders see only applicants who chose them
 
-### 4. Lender Dashboard Endpoints
+### 4. Lender Dashboard Endpoints [COMPLETED]
 - `GET /lender/applicants` — returns applicants who selected this lender
 - Filter by risk tier: Green (score > 700), Yellow (500-700), Red (< 500)
 
@@ -161,8 +229,6 @@ Work in `frontend/` folder. React app with two views:
 ---
 
 ## Prompt to Use with Claude for Day 2
-
-Paste this at the start of your Day 2 session:
 
 ```
 We are building CreditLens — a credit scoring platform for thin-file borrowers in India.
