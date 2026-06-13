@@ -119,13 +119,11 @@ export default function SimulatorPage() {
                     onClick={async () => {
                       try {
                         const { data: lenders } = await api.get('/lenders');
-                        for (const lender of lenders) {
-                          try {
-                            await api.post(`/lender/select/${lender.id}`);
-                          } catch (err) {
-                            // Ignore if already applied
-                          }
-                        }
+                        await Promise.all(
+                          lenders.map((lender: any) =>
+                            api.post(`/lender/select/${lender.id}`).catch(() => {})
+                          )
+                        );
                         toast.success('Application submitted to lenders successfully!');
                       } catch (err) {
                         toast.error('Failed to submit application.');
@@ -160,11 +158,6 @@ export default function SimulatorPage() {
         </div>
       </div>
 
-      <div className="flex justify-end pt-4 border-t border-[#ecebe8]">
-        <Link href="/borrower/monitor" className="btn btn-outline px-6 py-4 text-xs font-bold uppercase tracking-wider border-2 border-[#320070] text-[#320070]">
-          Go to Health Monitor <ArrowRight size={16} />
-        </Link>
-      </div>
     </div>
   );
 }

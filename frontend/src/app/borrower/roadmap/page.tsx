@@ -88,8 +88,8 @@ export default function RoadmapPage() {
       </div>
 
       <div className="flex justify-center pt-4 border-t border-[#ecebe8]">
-        <Link href="/borrower/simulator" className="btn btn-primary px-8 py-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.15)] flex justify-center hover:bg-[#7100eb]">
-          Try Loan Simulator <ArrowRight size={16} />
+        <Link href="/borrower/monitor" className="btn btn-primary px-8 py-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.15)] flex justify-center hover:bg-[#7100eb]">
+          Try Health Monitor<ArrowRight size={16} />
         </Link>
       </div>
     </div>

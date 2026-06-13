@@ -28,13 +28,14 @@ export default function BorrowerLayout({ children }: { children: React.ReactNode
 
   const navItems = [
     { href: '/borrower/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/borrower/applications', label: 'Applications', icon: Activity, step: 1 },
-    { href: '/borrower/onboarding', label: 'Onboarding', icon: UserPlus, step: 2 },
-    { href: '/borrower/upload', label: 'Upload Docs', icon: Upload, step: 3 },
-    { href: '/borrower/score', label: 'Credit Score', icon: ShieldAlert, step: 4 },
-    { href: '/borrower/roadmap', label: 'Roadmap', icon: TrendingUp, step: 5 },
-    { href: '/borrower/simulator', label: 'Loan Simulator', icon: Calculator, step: 6 },
-    { href: '/borrower/monitor', label: 'Health Monitor', icon: Activity, step: 7 },
+    { href: '/borrower/onboarding', label: 'Onboarding', icon: UserPlus, step: 1 },
+    { href: '/borrower/upload', label: 'Upload Docs', icon: Upload, step: 2 },
+    { href: '/borrower/score', label: 'Credit Score', icon: ShieldAlert, step: 3 },
+    { href: '/borrower/roadmap', label: 'Roadmap', icon: TrendingUp, step: 4 },
+    
+    { href: '/borrower/monitor', label: 'Health Monitor', icon: Activity, step: 5 },
+    { href: '/borrower/applications', label: 'Applications', icon: Activity, step: 6 },
+    { href: '/borrower/simulator', label: 'Loan Simulator', icon: Calculator, step: 7 },
   ];
 
   return (
